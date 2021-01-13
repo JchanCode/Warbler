@@ -4,7 +4,7 @@ from flask import Flask, render_template, request, flash, redirect, session, g
 from flask_debugtoolbar import DebugToolbarExtension
 from sqlalchemy.exc import IntegrityError
 
-from forms import UserAddForm, LoginForm, MessageForm
+from forms import UserAddForm, LoginForm, MessageForm, EditUserForm
 from models import db, connect_db, User, Message
 
 CURR_USER_KEY = "curr_user"
@@ -74,6 +74,9 @@ def signup():
                 password=form.password.data,
                 email=form.email.data,
                 image_url=form.image_url.data or User.image_url.default.arg,
+                location=form.location.data,
+                header_image_url=form.header_image_url.data,
+                bio=form.bio.data,
             )
             db.session.commit()
 
@@ -114,8 +117,9 @@ def logout():
     """Handle logout of user."""
 
     # IMPLEMENT THIS
-
-
+    do_logout()
+    flash("Logged Out!","success")
+    return redirect("/login")
 ##############################################################################
 # General user routes:
 
@@ -150,6 +154,9 @@ def users_show(user_id):
                 .order_by(Message.timestamp.desc())
                 .limit(100)
                 .all())
+
+    
+
 
     return render_template('users/show.html', user=user, messages=messages)
 
@@ -213,7 +220,34 @@ def profile():
     """Update profile for current user."""
 
     # IMPLEMENT THIS
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
 
+    form = EditUserForm()
+
+    if form.validate_on_submit():
+        if User.check_entered_pwd(g.user.password, form.password.data):
+            user = User.query.get(g.user.id)
+
+            user.username = form.username.data
+            user.email = form.email.data
+            user.password = form.password.data
+            user.image_url = form.image_url.data
+            user.header_image_url = form.header_url.data
+            user.bio = form.bio.data
+            user.location = form.location.data
+
+            db.session.add(user)
+            db.session.commit()
+
+            flash("Info Edited","success")
+            return redirect(f"{g.user.id}")
+        else:
+            flash("Wrong Password","danger")
+            return redirect("/")
+
+    return render_template("users/edit.html", form=form)
 
 @app.route('/users/delete', methods=["POST"])
 def delete_user():
@@ -293,8 +327,12 @@ def homepage():
     """
 
     if g.user:
+        id_list = [user.id for user in g.user.following]
+        id_list.append(g.user.id)
+
         messages = (Message
                     .query
+                    .filter(Message.user_id.in_(id_list))
                     .order_by(Message.timestamp.desc())
                     .limit(100)
                     .all())

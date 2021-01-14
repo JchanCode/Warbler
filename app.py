@@ -338,6 +338,8 @@ def add_like(msg_id):
         return render_template("/messages/likes.html", liked_messages=g.user.likes)
 
 
+
+
     # DONE ====>>Okay this works. Now i need to make a like template from message template
     # Done =====>>They should only be able to like warbles written by other users.
     # Done =====>>Star symbol next to liked warbles

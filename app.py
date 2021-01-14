@@ -5,7 +5,7 @@ from flask_debugtoolbar import DebugToolbarExtension
 from sqlalchemy.exc import IntegrityError
 
 from forms import UserAddForm, LoginForm, MessageForm, EditUserForm
-from models import db, connect_db, User, Message
+from models import db, connect_db, User, Message, Likes
 
 CURR_USER_KEY = "curr_user"
 
@@ -324,17 +324,24 @@ def add_like(msg_id):
     if not g.user:
         flash("Access unauthorized.", "danger")
         return redirect("/")
-    
-    liked_msg = Message.query.get(msg_id)
-    g.user.likes.append(liked_msg)
-    db.session.commit()
-    
-    return render_template("/messages/likes.html", liked_messages=g.user.likes )
+
+    liked_msgs_id_list = g.user.liked_msgs_id_list()
+    if int(msg_id) in liked_msgs_id_list:
+        liked_msg = Likes.query.filter(Likes.message_id==msg_id, Likes.user_id==g.user.id).one()
+        db.session.delete(liked_msg)
+        db.session.commit()
+        return redirect("/")
+    else:
+        liked_msg = Message.query.get(msg_id)
+        g.user.likes.append(liked_msg)
+        db.session.commit()
+        return render_template("/messages/likes.html", liked_messages=g.user.likes)
+
 
     # DONE ====>>Okay this works. Now i need to make a like template from message template
     # Done =====>>They should only be able to like warbles written by other users.
     # Done =====>>Star symbol next to liked warbles
-    # unlike a warble by clicking
+    # Done====>unlike a warble by clicking
     # On profilepage it should show how many warbleer that user has liked and this should link to a page showing their liekd warbles
     # if msg_id in g.user.likes.message_id:
     #     return "hi"
@@ -354,7 +361,7 @@ def homepage():
     if g.user:
         id_list = [user.id for user in g.user.following]
         id_list.append(g.user.id)
-        liked_msgs_list = [msg.id for msg in g.user.likes]
+        liked_msgs_list = g.user.liked_msgs_id_list()
 
         messages = (Message
                     .query

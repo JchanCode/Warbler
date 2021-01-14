@@ -313,6 +313,31 @@ def messages_destroy(message_id):
 
     return redirect(f"/users/{g.user.id}")
 
+##############################################################################
+# Likes Routes:
+
+
+@app.route("/users/add_like/<msg_id>", methods=["POST"])
+def add_like(msg_id):
+    """Adding like to message"""
+
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
+    
+    liked_msg = Message.query.get(msg_id)
+    g.user.likes.append(liked_msg)
+    db.session.commit()
+    
+    return render_template("/messages/likes.html", liked_messages=g.user.likes )
+
+    # DONE ====>>Okay this works. Now i need to make a like template from message template
+    # Done =====>>They should only be able to like warbles written by other users.
+    # Done =====>>Star symbol next to liked warbles
+    # unlike a warble by clicking
+    # On profilepage it should show how many warbleer that user has liked and this should link to a page showing their liekd warbles
+    # if msg_id in g.user.likes.message_id:
+    #     return "hi"
 
 ##############################################################################
 # Homepage and error pages
@@ -329,6 +354,7 @@ def homepage():
     if g.user:
         id_list = [user.id for user in g.user.following]
         id_list.append(g.user.id)
+        liked_msgs_list = [msg.id for msg in g.user.likes]
 
         messages = (Message
                     .query
@@ -336,8 +362,8 @@ def homepage():
                     .order_by(Message.timestamp.desc())
                     .limit(100)
                     .all())
-
-        return render_template('home.html', messages=messages)
+        
+        return render_template('home.html', messages=messages, liked_msgs_ids=liked_msgs_list)
 
     else:
         return render_template('home-anon.html')

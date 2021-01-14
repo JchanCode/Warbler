@@ -335,11 +335,20 @@ def add_like(msg_id):
         liked_msg = Message.query.get(msg_id)
         g.user.likes.append(liked_msg)
         db.session.commit()
-        return render_template("/messages/likes.html", liked_messages=g.user.likes)
+        return redirect("/users/likes")
 
 
+@app.route("/users/likes", methods=["GET"])
+def likes_show():
+    """Show user liked msg"""
 
+    if not g.user:
+        flash("Access unauthorized.", "danger")
+        return redirect("/")
 
+    liked_messages = g.user.likes
+
+    return render_template("/messages/likes.html", liked_messages=liked_messages)
     # DONE ====>>Okay this works. Now i need to make a like template from message template
     # Done =====>>They should only be able to like warbles written by other users.
     # Done =====>>Star symbol next to liked warbles

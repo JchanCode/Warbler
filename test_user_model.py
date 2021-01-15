@@ -35,11 +35,33 @@ class UserModelTestCase(TestCase):
     def setUp(self):
         """Create test client, add sample data."""
 
-        User.query.delete()
-        Message.query.delete()
-        Follows.query.delete()
+        db.drop_all()
+        db.create_all()
+
+        u1 = User.signup("test1","test1@email.com","password",None)
+        uid1 = 111
+        u1.id = uid1
+
+        u2 = User.signup("test2","test2@email.com","password",None)
+        uid2 = 222
+        u2.id = uid2
+
+        db.session.commit()
+
+        self.u1 = u1
+        self.uid1 = uid1
+        self.u2 = u2
+        self.uid2 = uid2
 
         self.client = app.test_client()
+
+    def tearDown(self):
+        """Clean up transaction."""
+        res = super().tearDown()
+        db.session.rollback()
+
+        return res
+
 
     def test_user_model(self):
         """Does basic model work?"""
@@ -56,3 +78,49 @@ class UserModelTestCase(TestCase):
         # User should have no messages & no followers
         self.assertEqual(len(u.messages), 0)
         self.assertEqual(len(u.followers), 0)
+
+    def test_user_repr(self):
+        """__repr__ testing"""
+
+        u = User(
+            email="test@test.com",
+            username="testuser",
+            password="HASHED_PASSWORD"
+        )
+
+        db.session.add(u)
+        db.session.commit()
+
+        self.assertEqual(
+            repr(u), f"<User #{u.id}: testuser, test@test.com>")
+
+    
+    def test_user_follows(self):
+        """Test is this user following `other_use`?"""
+
+        self.u1.following.append(self.u2)
+        db.session.commit()
+
+        self.assertEqual(len(self.u2.following),0)
+        self.assertEqual(len(self.u2.followers),1)
+        self.assertEqual(len(self.u1.followers),0)
+        self.assertEqual(len(self.u1.following),1)
+
+        self.assertEqual(self.u2.followers[0].id,self.u1.id)
+        self.assertEqual(self.u1.following[0].id,self.u2.id)
+
+    def test_is_following(self):
+        self.u1.following.append(self.u2)
+        db.session.commit()
+
+
+        
+
+        def is_following(self, other_user):
+        """Is this user following `other_use`?"""
+
+        found_user_list = [
+            user for user in self.following if user == other_user]
+        return len(found_user_list) == 1
+
+

@@ -74,19 +74,23 @@ class User(db.Model):
     image_url = db.Column(
         db.Text,
         default="/static/images/default-pic.png",
+        nullable=True
     )
 
     header_image_url = db.Column(
         db.Text,
-        default="/static/images/warbler-hero.jpg"
+        default="/static/images/warbler-hero.jpg",
+        nullable=True
     )
 
     bio = db.Column(
         db.Text,
+        nullable=True
     )
 
     location = db.Column(
         db.Text,
+        nullable=True
     )
 
     password = db.Column(
